@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/JustWorking42/gophermart-yandex/internal/app/authorization"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 type contextKey string

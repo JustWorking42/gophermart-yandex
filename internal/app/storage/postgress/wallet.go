@@ -2,8 +2,8 @@ package postgress
 
 import (
 	"context"
-	"errors"
 
+	"github.com/JustWorking42/gophermart-yandex/internal/app/model/apperrors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -49,24 +49,25 @@ func (p *PostgresWalletStorage) Deposit(ctx context.Context, tx pgx.Tx, walletID
 	if err != nil {
 		return err
 	}
-	newAmmount := cents + balance
-	_, err = p.db.Exec(ctx, "UPDATE wallets SET amount = $1 WHERE wallet_id = $2", newAmmount, walletID)
+	balance = cents + balance
+	_, err = p.db.Exec(ctx, "UPDATE wallets SET amount = $1 WHERE wallet_id = $2", balance, walletID)
 	return err
 }
 
 func (p *PostgresWalletStorage) Withdraw(ctx context.Context, tx pgx.Tx, walletID int, amount float64) error {
 	cents := int(amount * 100)
-	balance, _, err := p.GetBalanceAndWithdrawnInCentsByUser(ctx, tx, walletID)
+	balance, withdrawn, err := p.GetBalanceAndWithdrawnInCentsByUser(ctx, tx, walletID)
 	if err != nil {
 		return err
 	}
 	if balance < cents {
-		return errors.New("insufficient balance")
+		return &apperrors.ErrInsufficientBalance{}
 	}
 
-	newAmmount := balance - cents
+	balance -= cents
+	withdrawn += cents
 
-	_, err = tx.Exec(ctx, "UPDATE wallets SET amount = $1 WHERE wallet_id = $2", newAmmount, walletID)
+	_, err = tx.Exec(ctx, "UPDATE wallets SET amount = $1, withdrawn = $2 WHERE wallet_id = $3", balance, withdrawn, walletID)
 	if err != nil {
 		return err
 	}

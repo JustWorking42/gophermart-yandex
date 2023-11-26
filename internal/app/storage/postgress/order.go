@@ -2,12 +2,17 @@ package postgress
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/JustWorking42/gophermart-yandex/internal/app/model"
+	"github.com/JustWorking42/gophermart-yandex/internal/app/model/apperrors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+const (
+	ErrCodeDuplicateObject     = "23505"
+	ErrCodeForeignKeyViolation = "23503"
 )
 
 type PostgresOrderStorage struct {
@@ -40,22 +45,21 @@ func (p *PostgresOrderStorage) Init(ctx context.Context) error {
 func (p *PostgresOrderStorage) RegisterOrder(ctx context.Context, tx pgx.Tx, order model.RegisterOrderModel) error {
 	_, err := tx.Exec(ctx, "INSERT INTO orders (user_id, order_id) VALUES ($1, $2)", order.UserID, order.OrderID)
 	if err != nil {
-
 		if pgErr, ok := err.(*pgconn.PgError); ok {
-			if pgErr.Code == "23505" {
+			if pgErr.Code == ErrCodeDuplicateObject {
 				var userID int
 				err := p.db.QueryRow(ctx, "SELECT user_id FROM orders WHERE order_id = $1", order.OrderID).Scan(&userID)
 				if err != nil {
-					return fmt.Errorf("failed to get username for order number %s: %v", order.OrderID, err)
+					return err
 				}
 				if userID == order.UserID {
-					return fmt.Errorf("order number %s has already been uploaded by this user", order.OrderID)
+					return &apperrors.ErrAlreadyRegisteredByThisUser{}
 				} else {
-					return fmt.Errorf("order number %s has already been uploaded by another user: %d", order.OrderID, userID)
+					return &apperrors.ErrAlreadyRegisteredByAnotherUser{}
 				}
 			}
-			if pgErr.Code == "23503" {
-				return fmt.Errorf("username %d does not exist", order.UserID)
+			if pgErr.Code == ErrCodeForeignKeyViolation {
+				return &apperrors.ErrUserDoesNotExist{}
 			}
 		}
 		return err

@@ -24,7 +24,7 @@ func NewUpdater(repository *repository.AppRepository, serviceAddr string) *Updat
 }
 
 func (u *Updater) SubcribeOnTask(ctx context.Context) (*sync.WaitGroup, chan error) {
-	ticker := time.NewTicker(time.Second * 10)
+	ticker := time.NewTicker(time.Second)
 	var wg sync.WaitGroup
 	errChan := make(chan error)
 	wg.Add(1)

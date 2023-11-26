@@ -7,7 +7,7 @@ import (
 
 	"github.com/JustWorking42/gophermart-yandex/internal/app/model"
 	"github.com/JustWorking42/gophermart-yandex/internal/app/repository"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -27,10 +27,7 @@ func RegisterHandler(repository *repository.AppRepository, w http.ResponseWriter
 	}
 
 	user, _ := repository.GetByUsername(r.Context(), creds.Username)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
+
 	if user != model.EmptyUser() {
 		w.WriteHeader(http.StatusConflict)
 		return
@@ -71,11 +68,8 @@ func LoginHandler(repository *repository.AppRepository, w http.ResponseWriter, r
 		return
 	}
 
-	user, err := repository.GetByUsername(r.Context(), creds.Username)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	user, _ := repository.GetByUsername(r.Context(), creds.Username)
+
 	if user == model.EmptyUser() {
 		w.WriteHeader(http.StatusUnauthorized)
 		return

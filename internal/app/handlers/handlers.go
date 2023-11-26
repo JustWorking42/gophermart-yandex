@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"sort"
@@ -11,6 +12,8 @@ import (
 	"github.com/JustWorking42/gophermart-yandex/internal/app/cookie"
 	"github.com/JustWorking42/gophermart-yandex/internal/app/luna"
 	"github.com/JustWorking42/gophermart-yandex/internal/app/model"
+	"github.com/JustWorking42/gophermart-yandex/internal/app/model/apperrors"
+
 	"github.com/JustWorking42/gophermart-yandex/internal/app/repository"
 	"github.com/go-chi/chi/v5"
 )
@@ -50,13 +53,13 @@ func createOrder(repository *repository.AppRepository, w http.ResponseWriter, r 
 	username := r.Context().Value(cookie.ContextKeyUsername).(string)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	orderID := string(body)
 
 	if !luna.Valid(orderID) {
-		http.Error(w, "Invalid Order Number", http.StatusUnprocessableEntity)
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -67,7 +70,16 @@ func createOrder(repository *repository.AppRepository, w http.ResponseWriter, r 
 	)
 
 	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		switch err := err.(type) {
+		case *apperrors.ErrAlreadyRegisteredByThisUser:
+			w.WriteHeader(http.StatusOK)
+		case *apperrors.ErrAlreadyRegisteredByAnotherUser:
+			http.Error(w, err.Error(), http.StatusConflict)
+		case *apperrors.ErrUserDoesNotExist:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		default:
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -142,11 +154,11 @@ func withdraw(repository *repository.AppRepository, w http.ResponseWriter, r *ht
 
 	err := repository.WithdrawBalance(r.Context(), username, body)
 	if err != nil {
-		// if err == app.ErrInsufficientFunds {
-		http.Error(w, "Insufficient Funds", http.StatusPaymentRequired)
-		// } else {
-		// 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		// }
+		if errors.Is(err, &apperrors.ErrInsufficientBalance{}) {
+			http.Error(w, "Insufficient Funds", http.StatusPaymentRequired)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -166,8 +178,8 @@ func balance(repository *repository.AppRepository, w http.ResponseWriter, r *htt
 		Current   float64 `json:"current"`
 		Withdrawn float64 `json:"withdrawn"`
 	}{
-		Current:   float64(balance / 100),
-		Withdrawn: float64(withdrawn / 100),
+		Current:   float64(balance) / 100.0,
+		Withdrawn: float64(withdrawn) / 100.0,
 	}
 
 	response, err := json.Marshal(res)
