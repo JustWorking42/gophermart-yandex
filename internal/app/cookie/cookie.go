@@ -2,6 +2,7 @@ package cookie
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/JustWorking42/gophermart-yandex/internal/app/authorization"
@@ -12,11 +13,11 @@ type contextKey string
 
 const ContextKeyUsername contextKey = "username"
 
-func ValidateCookieMiddleware(h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func ValidateCookieMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("token")
 		if err != nil {
-			if err == http.ErrNoCookie {
+			if errors.Is(err, http.ErrNoCookie) {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -28,7 +29,7 @@ func ValidateCookieMiddleware(h http.HandlerFunc) http.HandlerFunc {
 
 		claims, err := authorization.ParseToken(tokenStr)
 		if err != nil {
-			if err == jwt.ErrSignatureInvalid {
+			if errors.Is(err, jwt.ErrSignatureInvalid) {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -37,6 +38,6 @@ func ValidateCookieMiddleware(h http.HandlerFunc) http.HandlerFunc {
 		}
 
 		ctx := context.WithValue(r.Context(), ContextKeyUsername, (*claims)["Username"])
-		h(w, r.WithContext(ctx))
-	}
+		h.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

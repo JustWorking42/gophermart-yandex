@@ -10,18 +10,10 @@ type RegisterRequestModel struct {
 type UserModel struct {
 	Username       string
 	HashedPassword string
-	WalletId       int
+	WalletID       int
 }
 
 type OrderStatus int
-
-const (
-	NEW OrderStatus = iota
-	REGISTERED
-	INVALID
-	PROCESSING
-	PROCESSED
-)
 
 type RegisterOrderModel struct {
 	OrderID string
@@ -39,12 +31,12 @@ type Claims struct {
 	Username string
 }
 
-func EmptyUser() UserModel {
-	return UserModel{}
-}
-
 type WithdrawalModel struct {
 	Order       string    `json:"order"`
 	Sum         float64   `json:"sum"`
 	ProcessedAt time.Time `json:"processed_at"`
+}
+type Balance struct {
+	Current   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn"`
 }

@@ -26,14 +26,14 @@ func main() {
 		log.Fatalf("ConfigService init err: %v err", err)
 	}
 
-	app, err := app.NewApp(mainContext, *config)
+	app, err := app.NewApp(mainContext, config.DatabaseURI, config.LogLevel)
 
 	if err != nil {
 		log.Fatalf("App init err: %v err", err)
 	}
 
 	updater := updater.NewUpdater(app.Repository, config.AccrualAdress)
-	wg, _ := updater.SubcribeOnTask(mainContext)
+	wg, errChan := updater.SubcribeOnTask(mainContext)
 
 	go func() {
 		wg.Wait()
@@ -51,18 +51,26 @@ func main() {
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
-			fmt.Printf("ListenAndServe error: %v\n", err)
+			log.Fatalf("ListenAndServe error: %v\n", err)
 		}
 	}()
 
-	<-stop
+	for {
+		select {
+		case err := <-errChan:
+			if err != nil {
+				log.Printf("Error: %v", err)
+			}
+		case <-stop:
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := server.Shutdown(ctx); err != nil {
-		fmt.Printf("Server Shutdown Failed:%+v", err)
-	} else {
-		fmt.Println("Server stopped")
+			if err := server.Shutdown(ctx); err != nil {
+				fmt.Printf("Server Shutdown Failed:%+v", err)
+			} else {
+				fmt.Println("Server stopped")
+			}
+			return
+		}
 	}
 }

@@ -1,25 +1,11 @@
 package apperrors
 
-type ErrAlreadyRegisteredByThisUser struct{}
+import "errors"
 
-func (e *ErrAlreadyRegisteredByThisUser) Error() string {
-	return "order has already been uploaded by this user"
-}
+var ErrAlreadyRegisteredByThisUser = errors.New("order has already been uploaded by this user")
 
-type ErrAlreadyRegisteredByAnotherUser struct{}
+var ErrAlreadyRegisteredByAnotherUser = errors.New("order has already been uploaded by another user")
 
-func (e *ErrAlreadyRegisteredByAnotherUser) Error() string {
-	return "order has already been uploaded by another user"
-}
+var ErrUserDoesNotExist = errors.New("user doesnt exist")
 
-type ErrUserDoesNotExist struct{}
-
-func (e *ErrUserDoesNotExist) Error() string {
-	return "user does not exist"
-}
-
-type ErrInsufficientBalance struct{}
-
-func (e *ErrInsufficientBalance) Error() string {
-	return "insufficient balance"
-}
+var ErrInsufficientBalance = errors.New("insufficient balance")

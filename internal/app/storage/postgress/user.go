@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/JustWorking42/gophermart-yandex/internal/app/model"
+	"github.com/JustWorking42/gophermart-yandex/internal/app/model/apperrors"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -48,11 +49,18 @@ func (p *PostgresUserStorage) Register(ctx context.Context, tx pgx.Tx, user mode
 	return nil
 }
 
-func (p *PostgresUserStorage) GetByLogin(ctx context.Context, username string) (model.UserModel, error) {
+func (p *PostgresUserStorage) GetByLogin(ctx context.Context, username string) (*model.UserModel, error) {
 	row := p.db.QueryRow(ctx, "SELECT username, hashed_password, wallet_id FROM users WHERE username = $1", username)
 	user := model.UserModel{}
-	err := row.Scan(&user.Username, &user.HashedPassword, &user.WalletId)
-	return user, err
+	err := row.Scan(&user.Username, &user.HashedPassword, &user.WalletID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperrors.ErrUserDoesNotExist
+		} else {
+			return nil, err
+		}
+	}
+	return &user, err
 }
 
 func (p *PostgresUserStorage) BindUserWallet(ctx context.Context, tx pgx.Tx, username string, walletID int) error {
@@ -63,7 +71,7 @@ func (p *PostgresUserStorage) BindUserWallet(ctx context.Context, tx pgx.Tx, use
 	return nil
 }
 
-func (p *PostgresUserStorage) GetUserIdByLogin(ctx context.Context, tx pgx.Tx, username string) (int, error) {
+func (p *PostgresUserStorage) GetUserIDByLogin(ctx context.Context, tx pgx.Tx, username string) (int, error) {
 	var userID int
 	err := tx.QueryRow(ctx, "SELECT user_id FROM users WHERE username = $1", username).Scan(&userID)
 	if err != nil {
@@ -72,7 +80,7 @@ func (p *PostgresUserStorage) GetUserIdByLogin(ctx context.Context, tx pgx.Tx, u
 	return userID, nil
 }
 
-func (p *PostgresUserStorage) GetWalletIdByUserId(ctx context.Context, tx pgx.Tx, userID int) (int, error) {
+func (p *PostgresUserStorage) GetWalletIDByUserID(ctx context.Context, tx pgx.Tx, userID int) (int, error) {
 	var walletID int
 	err := tx.QueryRow(ctx, "SELECT wallet_id FROM users WHERE user_id = $1", userID).Scan(&walletID)
 	if err != nil {

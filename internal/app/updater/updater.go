@@ -12,11 +12,11 @@ import (
 )
 
 type Updater struct {
-	repository  *repository.AppRepository
+	repository  repository.AppRepository
 	serviceAddr string
 }
 
-func NewUpdater(repository *repository.AppRepository, serviceAddr string) *Updater {
+func NewUpdater(repository repository.AppRepository, serviceAddr string) *Updater {
 	return &Updater{
 		repository:  repository,
 		serviceAddr: serviceAddr,
@@ -29,6 +29,8 @@ func (u *Updater) SubcribeOnTask(ctx context.Context) (*sync.WaitGroup, chan err
 	errChan := make(chan error)
 	wg.Add(1)
 	go func() {
+		defer wg.Done()
+		defer close(errChan)
 		for {
 			select {
 			case <-ticker.C:
@@ -40,16 +42,9 @@ func (u *Updater) SubcribeOnTask(ctx context.Context) (*sync.WaitGroup, chan err
 
 				if len(orders) > 0 {
 					u.updateOrderStatus(orders)
-
-					if err != nil {
-						errChan <- err
-						continue
-					}
 				}
 
 			case <-ctx.Done():
-				wg.Done()
-				close(errChan)
 				return
 			}
 		}

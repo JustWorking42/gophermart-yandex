@@ -61,7 +61,7 @@ func (p *PostgresWalletStorage) Withdraw(ctx context.Context, tx pgx.Tx, walletI
 		return err
 	}
 	if balance < cents {
-		return &apperrors.ErrInsufficientBalance{}
+		return apperrors.ErrInsufficientBalance
 	}
 
 	balance -= cents

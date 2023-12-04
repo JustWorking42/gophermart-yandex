@@ -3,20 +3,21 @@ package app
 import (
 	"context"
 
-	"github.com/JustWorking42/gophermart-yandex/internal/app/config"
+	"github.com/JustWorking42/gophermart-yandex/internal/app/logger"
 	"github.com/JustWorking42/gophermart-yandex/internal/app/repository"
 	"github.com/JustWorking42/gophermart-yandex/internal/app/storage/postgress"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 )
 
 type App struct {
 	context    context.Context
-	Repository *repository.AppRepository
+	Repository repository.AppRepository
+	Logger     *zap.Logger
 }
 
-func NewApp(ctx context.Context, config config.Config) (*App, error) {
-
-	dbPool, err := pgxpool.New(ctx, config.DatabaseURI)
+func NewApp(ctx context.Context, databaseURI string, logLevel string) (*App, error) {
+	dbPool, err := pgxpool.New(ctx, databaseURI)
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +58,14 @@ func NewApp(ctx context.Context, config config.Config) (*App, error) {
 
 	repository := repository.NewAppRepository(dbPool, orderStorage, userStorage, walletStorage, withdrawalsStorage)
 
+	logger, err := logger.CreateLogger(logLevel)
+	if err != nil {
+		return nil, err
+	}
+
 	return &App{
 		context:    ctx,
 		Repository: &repository,
+		Logger:     logger,
 	}, nil
 }

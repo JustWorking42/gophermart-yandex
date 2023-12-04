@@ -9,6 +9,7 @@ type Config struct {
 	ServerAdress  string
 	DatabaseURI   string
 	AccrualAdress string
+	LogLevel      string
 }
 
 func ConfigService() (*Config, error) {
@@ -18,6 +19,7 @@ func ConfigService() (*Config, error) {
 	flag.StringVar(&serverConfig.ServerAdress, "a", ":8081", "")
 	flag.StringVar(&serverConfig.DatabaseURI, "d", "postgresql://postgres:2446Ba3dDc3AAB-bgd1Fe25f636A1e42@viaduct.proxy.rlwy.net:22501/railway", "")
 	flag.StringVar(&serverConfig.AccrualAdress, "r", "http://127.0.0.1:8080", "")
+	flag.StringVar(&serverConfig.LogLevel, "l", "info", "")
 	flag.Parse()
 
 	if serverAdress := os.Getenv("RUN_ADDRESS"); serverAdress != "" {
@@ -30,6 +32,10 @@ func ConfigService() (*Config, error) {
 
 	if accrualAdress, exist := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS"); exist {
 		serverConfig.AccrualAdress = accrualAdress
+	}
+
+	if logLevel, exist := os.LookupEnv("LOG_LEVEL"); exist {
+		serverConfig.LogLevel = logLevel
 	}
 
 	return &serverConfig, nil

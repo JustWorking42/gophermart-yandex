@@ -53,13 +53,13 @@ func (p *PostgresOrderStorage) RegisterOrder(ctx context.Context, tx pgx.Tx, ord
 					return err
 				}
 				if userID == order.UserID {
-					return &apperrors.ErrAlreadyRegisteredByThisUser{}
+					return apperrors.ErrAlreadyRegisteredByThisUser
 				} else {
-					return &apperrors.ErrAlreadyRegisteredByAnotherUser{}
+					return apperrors.ErrAlreadyRegisteredByAnotherUser
 				}
 			}
 			if pgErr.Code == ErrCodeForeignKeyViolation {
-				return &apperrors.ErrUserDoesNotExist{}
+				return apperrors.ErrUserDoesNotExist
 			}
 		}
 		return err
@@ -121,7 +121,7 @@ func (p *PostgresOrderStorage) UpdateOrder(ctx context.Context, tx pgx.Tx, order
 	return err
 }
 
-func (p *PostgresOrderStorage) GetUserIdByOrderID(ctx context.Context, tx pgx.Tx, orderID string) (int, error) {
+func (p *PostgresOrderStorage) GetUserIDByOrderID(ctx context.Context, tx pgx.Tx, orderID string) (int, error) {
 	var userID int
 	err := tx.QueryRow(ctx, "SELECT user_id FROM orders WHERE order_id = $1", orderID).Scan(&userID)
 	if err != nil {
