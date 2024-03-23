@@ -20,10 +20,11 @@ jobs:
       - name: Download statictest binary
         uses: robinraju/release-downloader@v1.8
         with:
-          repository: Yandex-Practicum/go-autotests-bin
-          tag: "v0.9.16"
+          repository: Yandex-Practicum/go-autotests
+          latest: true
           fileName: statictest
           out-file-path: .tools
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup autotest binary
         run: |
